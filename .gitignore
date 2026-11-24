@@ -1,0 +1,6 @@
+/skin/*.mp4
+/skin/*.webp
+/desktop/*.dll
+/runtime/
+*.tmp
+*.lnk

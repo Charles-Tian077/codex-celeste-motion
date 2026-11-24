@@ -1,0 +1,116 @@
+#codex-amber-background,
+#codex-amber-intro {
+  --amber-focus: 67%;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#codex-amber-background {
+  display: none;
+  z-index: -1;
+  background: #120c09 url('./background.webp?v=29') var(--amber-focus) center / cover no-repeat;
+}
+
+#codex-amber-background[data-playing] { background-image: none; }
+
+#codex-amber-background::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: linear-gradient(180deg, rgb(13 9 8 / .32), rgb(13 9 8 / .46) 61%, rgb(13 9 8 / .73));
+}
+
+.vscode-light #codex-amber-background::after {
+  background: linear-gradient(180deg, rgb(253 247 240 / .5), rgb(253 247 240 / .70) 62%, rgb(253 247 240 / .87));
+}
+
+#codex-amber-background video,
+#codex-amber-intro video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--amber-focus) center;
+  opacity: 0;
+}
+
+#codex-amber-intro {
+  z-index: 2147483000;
+  visibility: hidden;
+  background: #080505;
+}
+
+#codex-amber-intro::before {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: url('./splash.webp?v=29') var(--amber-focus) center / cover no-repeat;
+  animation: amber-emerge .64s ease-out both;
+}
+
+#codex-amber-intro[data-holding]::before {
+  background-image: url('./background.webp?v=29');
+  animation: none;
+}
+
+@keyframes amber-emerge {
+  from { opacity: .12; }
+  to { opacity: .78; }
+}
+
+#codex-amber-intro video { transition: opacity .28s ease-out; }
+#codex-amber-background[data-playing] video,
+#codex-amber-intro[data-playing] video { opacity: 1; }
+
+html.codex-amber-starting #codex-amber-intro { visibility: visible; }
+html.codex-amber-starting #root { visibility: hidden; }
+html.codex-amber-active body { isolation: isolate; }
+html.codex-amber-active #codex-amber-background { display: block; }
+
+html.codex-amber-active,
+html.codex-amber-active body,
+html.codex-amber-active #root,
+html.codex-amber-active #root > div,
+html.codex-amber-active :is([data-app-shell-main-surface], [data-app-shell-surface-backing], [data-app-shell-main-content-layout],
+  [data-app-shell-pane-content-viewport], [data-app-shell-active-page], [data-app-shell-leading-sidebar],
+  [data-app-shell-left-panel-appearance], [data-slate-sidebar-content], [data-app-shell-titlebar]) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+html.codex-amber-active [data-app-shell-main-surface]:not(:has(.thread-scroll-container, [data-settings-panel])) {
+  background-image: linear-gradient(145deg, rgb(92 59 40 / .13), rgb(38 28 35 / .16) 60%, rgb(28 19 27 / .24)) !important;
+  box-shadow: inset 0 1px 0 rgb(255 220 177 / .23), inset 0 0 0 1px rgb(255 214 172 / .13);
+}
+
+html.codex-amber-active :is([data-sidebar-navigation-root], [data-app-navigation-rail]) {
+  background: linear-gradient(155deg, rgb(101 63 44 / .26), rgb(57 38 38 / .32) 52%, rgb(30 21 28 / .43)) !important;
+  box-shadow: inset 0 1px 0 rgb(255 220 177 / .23), inset 0 0 0 1px rgb(255 214 172 / .13);
+}
+
+html.codex-amber-active .vscode-light [data-app-shell-main-surface]:not(:has(.thread-scroll-container, [data-settings-panel])),
+html.codex-amber-active .vscode-light :is([data-sidebar-navigation-root], [data-app-navigation-rail]) {
+  background-image: linear-gradient(145deg, rgb(255 249 238 / .38), rgb(251 234 216 / .20)) !important;
+}
+
+html.codex-amber-active [data-settings-panel] > :is(.bg-surface, .electron\:bg-surface) {
+  background: rgb(18 13 20 / .36) !important;
+  backdrop-filter: none !important;
+}
+
+html.codex-amber-active .vscode-light [data-settings-panel] > :is(.bg-surface, .electron\:bg-surface) {
+  background: rgb(255 245 228 / .43) !important;
+}
+
+@media (max-aspect-ratio: 4/3) {
+  #codex-amber-intro video { object-fit: contain; }
+  #codex-amber-intro::before { background-size: contain; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #codex-amber-intro::before { animation: none; }
+  #codex-amber-intro video { transition: none; }
+}
