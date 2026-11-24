@@ -6,9 +6,8 @@ import { setTimeout as delay } from 'node:timers/promises';
 const [port, target, media, result] = process.argv.slice(2);
 assert.match(port, /^\d{1,5}$/);
 const matches = {
-  Doubao: (page) => page.protocol === 'doubao:' && page.hostname === 'doubao-chat' && /^\/chat(?:\/|$)/.test(page.pathname),
-  DeepSeek: (page) => ['localhost', '127.0.0.1', 'dsh.local'].includes(page.hostname) &&
-    ['http:', 'https:'].includes(page.protocol),
+  Doubao: (page) => ['doubao:', 'chrome:'].includes(page.protocol) && page.hostname === 'doubao-chat' && /^\/chat(?:\/|$)/.test(page.pathname),
+  DeepSeek: (page) => page.protocol === 'dsh-app:' && page.hostname === 'app',
   Qwen: (page) => (['tauri.localhost', 'localhost', '127.0.0.1'].includes(page.hostname) &&
     ['http:', 'https:'].includes(page.protocol)) || page.protocol === 'tauri:',
 };

@@ -36,11 +36,13 @@ VS Code 的扩展位于自定义目录时，可在 PowerShell 指定它。
 
 ## DeepSeek Harness 桌面版
 
+DeepSeek、Qwen 和豆包章节提供本地客户端部署流程及对应启动器。适配效果以所用客户端版本为准。三种适配使用 Node.js 22 或更新版本，已装官方 Codex 时也可复用其内置运行时。 [Node.js 下载](https://nodejs.org/en/download)
+
 1. 从 DeepSeek 官网下载并安装 **DeepSeek Harness for Windows**。
 2. 完全退出正在运行的 DeepSeek Harness，然后双击 `Install-DeepSeek.cmd`。
 3. 从桌面打开 **DeepSeek Motion**。首次进入时按客户端的提示登录或选择本地项目。
 
-动效启动器通过客户端自带的 Electron 渲染器加载开场和背景。 [DeepSeek 官方下载](https://www.deepseek.com/en/download/)
+动效启动器针对 DeepSeek Harness 的 Electron 本地工作台 `dsh-app://app/`。客户端退出后可通过官方入口恢复普通启动。 [DeepSeek 官方下载](https://www.deepseek.com/en/download/)
 
 ## Qwen Code Desktop
 
@@ -52,9 +54,9 @@ VS Code 的扩展位于自定义目录时，可在 PowerShell 指定它。
 
 ## 豆包桌面版
 
-1. 安装 **豆包 Windows 桌面版**。实测客户端版本为 `2.20.9`。
+1. 安装 **豆包 Windows 桌面版**。适配以客户端 `2.20.9` 的本地入口为参考。
 2. 在系统托盘退出正在运行的豆包，然后双击 `Install-Doubao.cmd`。
-3. 从桌面打开 **Doubao Motion**。启动器会定位豆包本地程序，进入 `doubao://doubao-chat/chat` 原生界面后播放完整开场和循环。
+3. 从桌面打开 **Doubao Motion**。启动器针对豆包本地程序的 `doubao://doubao-chat/chat` 窗口。
 
 来自软件管家的安装同样可用。若安装器找不到程序，可指定豆包安装根目录下的 `Doubao.exe` 或 `app\Doubao.exe`。 [豆包官方下载](https://www.doubao.com/download/desktop)
 
@@ -79,4 +81,4 @@ VS Code 的扩展位于自定义目录时，可在 PowerShell 指定它。
 
 分镜、动作设计和原始剪辑为 **Celeste_云中纤 / wynneceles**，画面由 Seedance 生成。本项目复用已获授权的改编素材，加入 Codex 等客户端的接入和眼动。第三方的再发布请按原作者素材许可和实际授权处理。 [作者项目](https://github.com/wynneceles/ai-boot-animations) · [作者许可](https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh-hans)
 
-演示使用实际 Codex 界面与同一套播放素材合成，已处理账号、项目与对话标识。客户端应用及商标归各自权利人。
+演示使用实际 Codex 界面与同一套播放素材合成，已处理账号、项目与对话标识。README 播放器使用便于加载的 720p 版本，发布页提供 1440p 同版视频。客户端应用及商标归各自权利人。
