@@ -12,11 +12,11 @@ if (-not $package) { throw 'The Windows Codex package is not installed.' }
 $executable = Join-Path $package.InstallLocation 'app\ChatGPT.exe'
 $executionAlias = Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps\$family\chatgpt-desktop.exe"
 $node = Join-Path $package.InstallLocation 'app\resources\cua_node\bin\node.exe'
-$themeRoot = Join-Path $env:LOCALAPPDATA 'CodexAmberMotion'
+$themeRoot = Split-Path -Parent $PSScriptRoot
 $profile = Join-Path $themeRoot 'motion-profile'
 $controller = Join-Path $PSScriptRoot 'connect.mjs'
 $media = Join-Path $PSScriptRoot 'skin'
-$revision = 29
+$revision = 33
 $null = [Reflection.Assembly]::LoadFrom((Join-Path $PSScriptRoot 'WindowIdentity.dll'))
 
 function Wait-ForLocalDebugger([int]$Port, [Diagnostics.Process]$App) {
@@ -93,9 +93,23 @@ try {
     }
 
     $running = if (-not $Verify) { Find-MotionProcess }
-    if ($Refresh -and -not $running) { throw 'No running Codex motion window is available to refresh.' }
     if ($running) {
-        $app = Get-Process -Id $running.Id
+        $app = Get-Process -Id $running.Id -ErrorAction SilentlyContinue
+        if (-not $app) { $running = $null }
+    }
+    if ($Refresh -and -not $running) { throw 'No running Codex motion window is available to refresh.' }
+    if ($running -and -not $Refresh) {
+        try {
+            Wait-ForLocalDebugger $running.Port $app
+            & $node $controller $running.Port 'activate'
+            if ($LASTEXITCODE) { throw 'Codex could not reopen its existing motion window.' }
+            $null = Set-MotionWindowGroup $app
+        } catch {
+            if (-not $app.HasExited) { throw }
+            $running = $null
+        }
+    }
+    if ($running) {
         $port = $running.Port
         $helper = Get-ThemeHelper $running.State $controller
         if (-not $helper) {
@@ -103,15 +117,10 @@ try {
             $previousState = Join-Path $previous ([IO.Path]::GetFileName($running.State))
             $helper = Get-ThemeHelper $previousState (Join-Path $previous 'connect.mjs')
         }
-        if (-not $Refresh) {
-            $window = [CodexMotionWindow]::Find($app.Id)
-            if ($window -ne [IntPtr]::Zero) { [CodexMotionWindow]::Restore($window, $app.Id) }
-            if ($helper -and $helper.Process -and $helper.Revision -eq $revision) {
-                'Activated the existing Codex motion window.'
-                return
-            }
+        if ($helper -and $helper.Process -and $helper.Revision -eq $revision) {
+            if (-not $Refresh) { 'Activated the existing Codex motion window.' }
+            return
         }
-        if ($helper -and $helper.Process -and $helper.Revision -eq $revision) { return }
         Wait-ForLocalDebugger $port $app
         if ($helper -and $helper.Process) {
             $helper.Process.Kill()
@@ -119,7 +128,7 @@ try {
         }
         if (Test-Path -LiteralPath $running.State -PathType Leaf) { Remove-Item -LiteralPath $running.State -ErrorAction Stop }
     } else {
-        foreach ($file in @($executionAlias, $node, $controller, (Join-Path $PSScriptRoot 'theme.js'), (Join-Path $PSScriptRoot 'theme.css'))) {
+        foreach ($file in @($executionAlias, $node, $controller, (Join-Path $PSScriptRoot 'theme.js'), (Join-Path $PSScriptRoot 'theme.css'), (Join-Path $PSScriptRoot 'glass.css'))) {
             if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing required file: $file" }
         }
         foreach ($file in 'intro.mp4','background.mp4','background.webp','splash.webp') {

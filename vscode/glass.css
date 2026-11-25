@@ -1,0 +1,64 @@
+/* Shared by the desktop workbench and the Codex VS Code webview. */
+:is(html[data-codex-amber-phase='live'], html.codex-amber-active) {
+  --amber-base-tint: rgb(28 19 25 / .22);
+  --amber-panel-tint: rgb(42 27 30 / .38);
+  --amber-card-tint: rgb(64 40 36 / .49);
+  --amber-raised-tint: rgb(48 29 31 / .75);
+  --amber-popup-fill: linear-gradient(148deg, rgb(77 48 39 / .86), rgb(31 22 29 / .89) 70%);
+  --amber-popup-edge: rgb(255 218 178 / .23);
+  --amber-popup-light: rgb(255 224 190 / .34);
+  --amber-scrim: rgb(17 10 14 / .32);
+}
+
+:is(html[data-codex-amber-phase='live'], html.codex-amber-active)[data-theme='light'],
+html.codex-amber-active :is(.vscode-light, [data-vscode-theme-kind='vscode-light']) {
+  --amber-base-tint: rgb(255 240 221 / .24);
+  --amber-panel-tint: rgb(245 224 207 / .40);
+  --amber-card-tint: rgb(255 240 220 / .59);
+  --amber-raised-tint: rgb(255 239 222 / .79);
+  --amber-popup-fill: linear-gradient(148deg, rgb(255 248 235 / .95), rgb(244 221 201 / .88) 70%);
+  --amber-popup-edge: rgb(108 70 49 / .26);
+  --amber-popup-light: rgb(255 255 247 / .87);
+  --amber-scrim: rgb(69 42 33 / .21);
+}
+
+/* Components that own their backdrop still inherit the same surface colors. */
+:is(html[data-codex-amber-phase='live'], html.codex-amber-active),
+:is(html[data-codex-amber-phase='live'], html.codex-amber-active)
+  :where(body, [data-app-shell-frame], [data-settings-panel], [data-radix-popper-content-wrapper]) {
+  --color-surface: var(--amber-base-tint) !important;
+  --color-surface-secondary: var(--amber-panel-tint) !important;
+  --color-surface-tertiary: var(--amber-card-tint) !important;
+  --color-surface-card: var(--amber-card-tint) !important;
+  --color-surface-elevated: var(--amber-raised-tint) !important;
+  --color-surface-elevated-secondary: var(--amber-raised-tint) !important;
+  --color-background-panel: var(--amber-panel-tint) !important;
+  --color-background-composer-surface: var(--amber-card-tint) !important;
+  --app-color-background-editor-opaque: var(--amber-panel-tint) !important;
+  --app-color-background-elevated-primary-opaque: var(--amber-raised-tint) !important;
+  --app-color-background-elevated-secondary-opaque: var(--amber-raised-tint) !important;
+  --app-color-background-elevated-tertiary-opaque: var(--amber-raised-tint) !important;
+  --menu-background-color: var(--amber-raised-tint) !important;
+}
+
+:is(html[data-codex-amber-phase='live'], html.codex-amber-active)
+  :where([data-app-shell-page-surface], [data-app-shell-page-sidebar]) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+:is(html[data-codex-amber-phase='live'], html.codex-amber-active)
+  :is([data-radix-popper-content-wrapper] > [role='menu'], [data-radix-popper-content-wrapper] > [role='listbox'],
+    [data-radix-popper-content-wrapper] > [role='dialog'], [role='dialog'][aria-modal='true'],
+    [role='dialog'][data-state='open'], [role='alertdialog'], [role='tooltip']) {
+  background: var(--amber-popup-fill) !important;
+  backdrop-filter: none !important;
+  box-shadow: inset 0 0 0 1px var(--amber-popup-edge), inset 0 1px 0 var(--amber-popup-light),
+    0 10px 30px rgb(13 6 10 / .26) !important;
+}
+
+:is(html[data-codex-amber-phase='live'], html.codex-amber-active)
+  :where([data-state='open'][class*='bg-black/'].fixed.inset-0, [data-slot='dialog-overlay'], [data-slot='alert-dialog-overlay']) {
+  background: var(--amber-scrim) !important;
+  backdrop-filter: none !important;
+}

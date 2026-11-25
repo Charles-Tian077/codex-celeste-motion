@@ -16,6 +16,8 @@ function nativePage(url) {
 }
 
 async function findBrowser(port) {
+  assert.match(port ?? '', /^\d{1,5}$/);
+  assert.ok(Number(port) > 0 && Number(port) <= 65535);
   const deadline = Date.now() + 12500;
   while (Date.now() < deadline) {
     const result = await fetch(`http://127.0.0.1:${port}/json/version`, {
@@ -91,20 +93,64 @@ const stateExpression = `window[Symbol.for('codex-amber-motion')]?.diagnostic()`
 const mediaExpression = `location.protocol === 'app:' && location.hostname === '-' && location.pathname === '/index.html'
   ? document.querySelector('input[type=file][data-codex-amber-media]') : undefined`;
 
+async function activate(port) {
+  const link = new BrowserLink(await findBrowser(port), () => {});
+  const sessions = new Map();
+  const workbenches = async () => {
+    const { targetInfos } = await link.call('Target.getTargets');
+    return targetInfos.filter(({ type, url }) => type === 'page' && nativePage(url));
+  };
+  async function sessionFor({ targetId }) {
+    if (!sessions.has(targetId)) {
+      const { sessionId } = await link.call('Target.attachToTarget', { targetId, flatten: true });
+      sessions.set(targetId, sessionId);
+    }
+    return sessions.get(targetId);
+  }
+  const visible = (sessionId) => link.evaluate(sessionId, "document.visibilityState === 'visible'").catch(() => false);
+  try {
+    await link.opened;
+    let pages = await workbenches();
+    const loadingUntil = Date.now() + 2000;
+    while (!pages.length && Date.now() < loadingUntil) {
+      await delay(80);
+      pages = await workbenches();
+    }
+    const main = pages.find(({ url }) => !new URL(url).searchParams.has('initialRoute')) ?? pages[0];
+    assert.ok(main, 'There is no native Codex window to reopen.');
+    const sessionId = await sessionFor(main);
+    // A Win32 ShowWindow call exposes the HWND while Electron still considers
+    // its webContents hidden. Ask Codex to show its current window and route.
+    await link.evaluate(sessionId, "window.electronBridge.sendMessageFromView({type:'open-current-main-window'})");
+    const until = Date.now() + 2400;
+    do {
+      if (await visible(sessionId)) return;
+      // Codex can choose its last active workbench or recreate it during show.
+      const other = (await workbenches()).filter((page) => page.targetId !== main.targetId);
+      const shown = await Promise.all(other.map((page) => sessionFor(page).then(visible).catch(() => false)));
+      if (shown.some(Boolean)) return;
+      await delay(75);
+    } while (Date.now() < until);
+    throw new Error('Codex did not make the reopened workbench visible to its renderer.');
+  } finally {
+    link.socket.close();
+  }
+}
+
 async function apply() {
   const [port, folder, mode, statusFile] = process.argv.slice(2);
-  assert.match(port ?? '', /^\d{1,5}$/);
-  assert.ok(Number(port) > 0 && Number(port) <= 65535);
   assert.ok(['launch', 'refresh', 'verify'].includes(mode));
   const verifying = mode === 'verify';
-  const revision = 29;
+  const revision = 33;
   const media = ['intro.mp4', 'background.mp4', 'background.webp'].map((name) => resolve(folder, name));
-  const [script, css, poster] = await Promise.all([
+  const [script, baseStyle, glassStyle, poster] = await Promise.all([
     readFile(new URL('./theme.js', import.meta.url), 'utf8'),
     readFile(new URL('./theme.css', import.meta.url), 'utf8'),
+    readFile(new URL('./glass.css', import.meta.url), 'utf8'),
     readFile(resolve(folder, 'splash.webp')),
     ...media.map((path) => access(path)),
   ]);
+  const css = baseStyle + '\n' + glassStyle;
   const revealUntil = mode === 'refresh' ? 0 : Date.now() + 16000;
   const source = `(${script.trim()})(${JSON.stringify({ css, splash: `data:image/webp;base64,${poster.toString('base64')}`, revealUntil, launchId: randomUUID(), revision })})`;
   const sessions = new Map();
@@ -213,7 +259,9 @@ async function apply() {
   }
 }
 
-apply().catch(async (error) => {
+const [port, command] = process.argv.slice(2);
+const action = command === 'activate' ? activate(port) : apply();
+action.catch(async (error) => {
   console.error(error.message);
   const [, , , status] = process.argv.slice(2);
   if (status) await writeFile(status, JSON.stringify({ ok: false, message: error.message })).catch(() => {});

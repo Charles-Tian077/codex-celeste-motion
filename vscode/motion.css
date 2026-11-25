@@ -10,7 +10,7 @@
 #codex-amber-background {
   display: none;
   z-index: -1;
-  background: #120c09 url('./background.webp?v=29') var(--amber-focus) center / cover no-repeat;
+  background: #120c09 url('./background.webp?v=33') var(--amber-focus) center / cover no-repeat;
 }
 
 #codex-amber-background[data-playing] { background-image: none; }
@@ -47,12 +47,12 @@
   position: absolute;
   inset: 0;
   content: '';
-  background: url('./splash.webp?v=29') var(--amber-focus) center / cover no-repeat;
+  background: url('./splash.webp?v=33') var(--amber-focus) center / cover no-repeat;
   animation: amber-emerge .64s ease-out both;
 }
 
 #codex-amber-intro[data-holding]::before {
-  background-image: url('./background.webp?v=29');
+  background-image: url('./background.webp?v=33');
   animation: none;
 }
 

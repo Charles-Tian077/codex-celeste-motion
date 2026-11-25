@@ -14,7 +14,7 @@ $ErrorActionPreference = 'Stop'
 $InstallRoot = [IO.Path]::GetFullPath($InstallRoot)
 $media = Join-Path $PSScriptRoot 'skin'
 $motionFiles = @('intro.mp4','background.mp4','background.webp','splash.webp')
-$version = 29
+$version = 33
 $extensionVersion = '26.1106.51428'
 
 function Set-AtomicFile([string]$Temporary, [string]$Destination) {
@@ -145,6 +145,7 @@ function Install-Desktop {
     foreach ($file in 'WindowIdentity.dll','connect.mjs','theme.css','theme.js','verify.mjs','verify-settings.mjs','Show-CodexAmber.ps1') {
         Copy-VerifiedFile (Join-Path $from $file) (Join-Path $dest $file)
     }
+    Copy-VerifiedFile (Join-Path $PSScriptRoot 'vscode\glass.css') (Join-Path $dest 'glass.css')
     $launch = Join-Path $dest 'Show-CodexAmber.ps1'
     $shortcut = Find-ExistingCodexShortcut
     if (-not $shortcut) { $shortcut = Set-Shortcut 'Codex Motion' $launch $appFile }
@@ -163,41 +164,50 @@ function Install-VSCode {
     $backup = Join-Path $webview 'index.before-celeste-motion.html'
     $marker = '<!-- codex-amber-motion -->'
     $current = [IO.File]::ReadAllText($index)
-    if ($Uninstall) {
-        if (-not $current.Contains($marker)) { 'VS Code is already using the original webview.'; return }
-        if (-not [IO.File]::Exists($backup)) { throw 'The original webview backup is missing. Reinstall the same Codex extension version to restore it.' }
-        Copy-VerifiedFile $backup $index
-        'Restored the original VS Code webview. Reload the VS Code window.'
+    $patched = $current.Contains($marker)
+    if ($Uninstall -and -not $patched) {
+        'VS Code is already using the original webview.'
         return
     }
     $clean = $current
-    if ($current.Contains($marker)) {
-        if (-not [IO.File]::Exists($backup)) {
-            $links = '(?m)^ {2,4}<!-- codex-amber-motion -->\r?\n    <link rel="stylesheet" href="\./codex-amber-character/motion\.css\?v=\d+">\r?\n    <script defer src="\./codex-amber-character/motion\.js(?:\?v=\d+)?"></script>\r?\n'
-            $layers = '(?ms)^    <div id="codex-amber-background" aria-hidden="true">\r?\n      <video [^\r\n]+></video>\r?\n    </div>\r?\n    <div id="codex-amber-intro" aria-hidden="true">\r?\n      <video [^\r\n]+></video>\r?\n    </div>\r?\n'
-            if ([Regex]::Matches($current,$links).Count -ne 1 -or [Regex]::Matches($current,$layers).Count -ne 1) {
-                throw 'The existing patch differs from this theme. Restore its original webview before installing.'
-            }
-            $clean = [Regex]::Replace([Regex]::Replace($current,$links,''),$layers,'')
-        } else {
-            $clean = [IO.File]::ReadAllText($backup)
+    if ($patched) {
+        # Strip the exact theme blocks from the current template so an extension
+        # update or other HTML outside the theme remains intact.
+        $links = '(?m)^ {2,4}<!-- codex-amber-motion -->\r?\n    <link rel="stylesheet" href="\./codex-amber-character/motion\.css\?v=\d+">\r?\n(?:    <link rel="stylesheet" href="\./codex-amber-character/glass\.css\?v=\d+">\r?\n)?    <script defer src="\./codex-amber-character/motion\.js(?:\?v=\d+)?"></script>\r?\n'
+        $layers = '(?m)^    <div id="codex-amber-background" aria-hidden="true">\r?\n      <video muted loop playsinline preload="none" data-source="\./codex-amber-character/background\.mp4\?v=\d+"></video>\r?\n    </div>\r?\n    <div id="codex-amber-intro" aria-hidden="true">\r?\n      <video muted playsinline preload="none" data-source="\./codex-amber-character/intro\.mp4\?v=\d+"></video>\r?\n    </div>\r?\n'
+        if ([Regex]::Matches($current,$links).Count -ne 1 -or [Regex]::Matches($current,$layers).Count -ne 1) {
+            throw 'The installed webview has a different theme structure. Restore the official extension template before continuing.'
         }
+        $clean = [Regex]::Replace([Regex]::Replace($current,$links,''),$layers,'')
     }
     foreach ($token in '<!-- PROD_BASE_TAG_HERE -->','<!-- PROD_CSP_TAG_HERE -->','</head>','    <div id="root">') {
         if ([Regex]::Matches($clean, [Regex]::Escape($token)).Count -ne 1) {
             throw 'The official Codex webview template has changed. No files were replaced.'
         }
     }
-    if (-not [IO.File]::Exists($backup)) { Write-AtomicText $backup $clean }
+    if ($Uninstall) {
+        if ([IO.File]::ReadAllText($index) -cne $current) { throw 'The VS Code template changed during restoration.' }
+        if ([IO.File]::Exists($backup) -and [IO.File]::ReadAllText($backup) -ceq $clean) {
+            Copy-VerifiedFile $backup $index
+        } else {
+            Write-AtomicText $index $clean
+        }
+        'Restored the original VS Code webview. Reload the VS Code window.'
+        return
+    }
+    if (-not [IO.File]::Exists($backup)) {
+        if ($patched) { Write-AtomicText $backup $clean } else { Copy-VerifiedFile $index $backup }
+    }
     $assetFolder = 'codex-amber-character'
     $assets = Join-Path $webview $assetFolder
     Install-Assets $assets
-    foreach ($name in 'motion.css','motion.js') {
+    foreach ($name in 'motion.css','glass.css','motion.js') {
         Copy-VerifiedFile (Join-Path $PSScriptRoot "vscode\$name") (Join-Path $assets $name)
     }
     $head = @"
   $marker
     <link rel="stylesheet" href="./$assetFolder/motion.css?v=$version">
+    <link rel="stylesheet" href="./$assetFolder/glass.css?v=$version">
     <script defer src="./$assetFolder/motion.js?v=$version"></script>
   </head>
 "@
@@ -212,7 +222,7 @@ function Install-VSCode {
 "@
     $next = $clean.Replace('  </head>', $head).Replace('    <div id="root">', $layers)
     if ($next -eq $clean -or -not $next.Contains($marker)) { throw 'The VS Code template could not be updated.' }
-    if ([IO.File]::ReadAllText($index) -ne $current) { throw 'The VS Code template changed during the deployment.' }
+    if ([IO.File]::ReadAllText($index) -cne $current) { throw 'The VS Code template changed during the deployment.' }
     Write-AtomicText $index $next
     'VS Code theme installed. Open or reload VS Code and open the Codex panel.'
 }
